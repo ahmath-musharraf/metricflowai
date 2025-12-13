@@ -1,3 +1,4 @@
+
 export type CellValue = string | number | boolean | null;
 
 export interface DataRow {
@@ -49,4 +50,12 @@ export enum AnalysisStatus {
   LOADING = 'LOADING',
   COMPLETE = 'COMPLETE',
   ERROR = 'ERROR'
+}
+
+declare global {
+  // Define AIStudio interface to be compatible with existing global type
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
 }
