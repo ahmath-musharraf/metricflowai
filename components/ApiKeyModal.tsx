@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Key, ExternalLink, Check, AlertCircle } from 'lucide-react';
+import { Key, ExternalLink, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { validateApiKey } from '../services/geminiService';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -9,13 +10,26 @@ interface ApiKeyModalProps {
 
 const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onSave }) => {
   const [key, setKey] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (key.trim()) {
-      onSave(key.trim());
-      onClose();
+      setIsValidating(true);
+      setError(null);
+      
+      const isValid = await validateApiKey(key.trim());
+      
+      setIsValidating(false);
+      
+      if (isValid) {
+        onSave(key.trim());
+        onClose();
+      } else {
+        setError("This API Key is invalid or expired. Please check and try again.");
+      }
     }
   };
 
@@ -61,32 +75,55 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onSave }) =>
                     <input 
                         type="password"
                         value={key}
-                        onChange={(e) => setKey(e.target.value)}
+                        onChange={(e) => {
+                            setKey(e.target.value);
+                            setError(null);
+                        }}
+                        disabled={isValidating}
                         placeholder="AIzaSy..."
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all font-mono text-sm"
+                        className={`w-full bg-slate-950 border rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 transition-all font-mono text-sm ${error ? 'border-red-500/50 focus:ring-red-500/50' : 'border-slate-800 focus:ring-brand-500/50 focus:border-brand-500'}`}
                     />
                 </div>
+                
+                {error && (
+                    <div className="flex items-start gap-2 text-xs text-red-200 bg-red-900/20 p-3 rounded-lg border border-red-500/30 animate-in slide-in-from-top-2">
+                        <AlertCircle size={14} className="mt-0.5 shrink-0 text-red-400" />
+                        <span>{error}</span>
+                    </div>
+                )}
 
-                <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
-                    <AlertCircle size={14} className="mt-0.5 shrink-0 text-slate-400" />
-                    <span>Your key is stored locally in your browser and never sent to our servers.</span>
-                </div>
+                {!error && (
+                    <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+                        <AlertCircle size={14} className="mt-0.5 shrink-0 text-slate-400" />
+                        <span>Your key is stored locally in your browser and never sent to our servers.</span>
+                    </div>
+                )}
             </div>
 
             <div className="flex gap-3 pt-2">
                 <button 
                     onClick={onClose}
-                    className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition-colors border border-slate-700"
+                    disabled={isValidating}
+                    className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition-colors border border-slate-700 disabled:opacity-50"
                 >
                     Cancel
                 </button>
                 <button 
                     onClick={handleSave}
-                    disabled={!key.trim()}
+                    disabled={!key.trim() || isValidating}
                     className="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-medium transition-all shadow-lg shadow-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                    <Check size={18} />
-                    Save API Key
+                    {isValidating ? (
+                        <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>Verifying...</span>
+                        </>
+                    ) : (
+                        <>
+                            <Check size={18} />
+                            <span>Save API Key</span>
+                        </>
+                    )}
                 </button>
             </div>
         </div>
