@@ -3,6 +3,9 @@ import { Dataset } from './types';
 import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
 
+// Placeholder Logo - Replace this URL with your own logo image
+const LOGO_URL = "https://cdn-icons-png.flaticon.com/512/9724/9724484.png";
+
 const App: React.FC = () => {
   const [dataset, setDataset] = useState<Dataset | null>(null);
   const [hasApiKey, setHasApiKey] = useState(false);
@@ -54,9 +57,19 @@ const App: React.FC = () => {
 
                 <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-4">
                     <div className="text-center mb-10 space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                    <div className="inline-flex items-center justify-center p-3 mb-4 rounded-2xl bg-slate-800/50 border border-slate-700 shadow-xl backdrop-blur-sm">
-                        <span className="text-2xl">✨</span>
+                    
+                    {/* Logo Image */}
+                    <div className="flex justify-center mb-6">
+                        <div className="relative group">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-brand-500 to-purple-600 rounded-full opacity-30 group-hover:opacity-70 blur transition duration-1000 group-hover:duration-200"></div>
+                            <img 
+                                src={LOGO_URL} 
+                                alt="MetricFlowAI Logo" 
+                                className="relative w-24 h-24 object-contain drop-shadow-2xl"
+                            />
+                        </div>
                     </div>
+
                     <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
                         MetricFlowAI
                     </h1>
