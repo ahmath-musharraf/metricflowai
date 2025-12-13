@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dataset } from './types';
 import FileUpload from './components/FileUpload';
@@ -22,8 +23,9 @@ const App: React.FC = () => {
 
       // 1. Check Google AI Studio / IDX Environment first
       try {
-        if (window.aistudio) {
-          const has = await window.aistudio.hasSelectedApiKey();
+        const win = window as any;
+        if (win.aistudio) {
+          const has = await win.aistudio.hasSelectedApiKey();
           if (has) {
             setHasApiKey(true);
             googleKeyFound = true;
@@ -59,29 +61,26 @@ const App: React.FC = () => {
 
   const handleLogin = async () => {
     setAuthError(null);
-    if (window.aistudio) {
+    const win = window as any;
+    if (win.aistudio) {
       try {
-        await window.aistudio.openSelectKey();
-        const has = await window.aistudio.hasSelectedApiKey(); 
-        if (has) {
-            setHasApiKey(true);
-            setIsGuest(false);
-        } else {
-             // If the promise resolved without error, usually it means success or user cancelled.
-             // We check hasSelectedApiKey again to be sure. 
-             // Some versions of the API might resolve even if cancelled.
-             // If we are here, we might optimistically assume success if the environment is quirky, 
-             // but strict checking is better.
-             // However, to satisfy "automatically detect", if openSelectKey finishes, we can trigger a re-render/re-check.
-             const reCheck = await window.aistudio.hasSelectedApiKey();
-             if (reCheck) setHasApiKey(true);
-        }
+        await win.aistudio.openSelectKey();
+        // IMPORTANT: A race condition can occur where hasSelectedApiKey() may not immediately 
+        // return true after the user selects a key. We must assume success if the promise resolves.
+        setHasApiKey(true);
+        setIsGuest(false);
       } catch (e: any) {
         console.error("Failed to select key", e);
         if (e.message && e.message.includes("Authentication provider not found")) {
              setAuthError("Authentication provider missing. You can enter your API key manually below.");
         } else {
-             setAuthError("Authentication failed. Please try again, enter key manually, or continue as Guest.");
+             // In some cases, if the user cancels the dialog, it might throw or just resolve.
+             // If it throws "Requested entity was not found" or similar, we reset.
+             if (e.message && e.message.includes("Requested entity was not found")) {
+                setAuthError("Please try selecting the key again.");
+             } else {
+                setAuthError("Authentication failed. Please try again.");
+             }
         }
       }
     } else {
