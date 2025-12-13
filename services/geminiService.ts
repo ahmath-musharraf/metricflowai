@@ -2,12 +2,14 @@ import { GoogleGenAI, FunctionDeclaration, Type } from "@google/genai";
 import { Dataset, QueryResponse } from "../types";
 import { getDatasetSummaryForAI } from "../utils/dataUtils";
 
-// NOTE: API Key is managed via window.aistudio and injected into process.env.API_KEY
-// We initialize the client inside functions to ensure we pick up the dynamically selected key.
+// Helper to retrieve API key from env (injected) or localStorage (manual)
+const getApiKey = (): string | null => {
+  return process.env.API_KEY || localStorage.getItem('gemini_api_key') || null;
+};
 
 export const analyzeDataset = async (dataset: Dataset, model: string = 'gemini-2.5-flash'): Promise<string> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key is missing. Please log in.");
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("API Key is missing. Please log in or set up your API key.");
 
   const ai = new GoogleGenAI({ apiKey });
 
@@ -69,7 +71,7 @@ const renderChartTool: FunctionDeclaration = {
 };
 
 export const queryDataset = async (dataset: Dataset, question: string, chatHistory: {role: string, content: string}[] = [], model: string = 'gemini-2.5-flash'): Promise<QueryResponse> => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) throw new Error("API Key is missing. Please log in.");
 
   const ai = new GoogleGenAI({ apiKey });
