@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Dataset } from '../types';
 import { 
@@ -15,12 +16,23 @@ interface ChartSectionProps {
 
 const COLORS = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#ec4899', '#64748b'];
 
+interface ChartErrorBoundaryProps {
+  children?: React.ReactNode;
+  fallbackHeight?: string;
+}
+
+interface ChartErrorBoundaryState {
+  hasError: boolean;
+}
+
 // Error Boundary Component for Charts
-class ChartErrorBoundary extends React.Component<{ children: React.ReactNode, fallbackHeight?: string }, { hasError: boolean }> {
-  constructor(props: { children: React.ReactNode, fallbackHeight?: string }) {
+class ChartErrorBoundary extends React.Component<ChartErrorBoundaryProps, ChartErrorBoundaryState> {
+  constructor(props: ChartErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
+
+  public state: ChartErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError(error: any) {
     return { hasError: true };
