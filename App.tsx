@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Dataset } from './types';
 import FileUpload from './components/FileUpload';
 import Dashboard from './components/Dashboard';
+import ApiKeyModal from './components/ApiKeyModal';
+import { Key } from 'lucide-react';
 
 // Placeholder Logo - Replace this URL with your own logo image
 const LOGO_URL = "https://cdn-icons-png.flaticon.com/512/9724/9724484.png";
@@ -12,19 +14,45 @@ const App: React.FC = () => {
   const [isGuest, setIsGuest] = useState(false);
   const [isCheckingKey, setIsCheckingKey] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   useEffect(() => {
     const checkKey = async () => {
+      let googleKeyFound = false;
+
+      // 1. Check Google AI Studio / IDX Environment first
       try {
         if (window.aistudio) {
           const has = await window.aistudio.hasSelectedApiKey();
-          setHasApiKey(has);
+          if (has) {
+            setHasApiKey(true);
+            googleKeyFound = true;
+          }
         }
       } catch (e) {
-        console.error("Failed to check API key", e);
-      } finally {
-        setIsCheckingKey(false);
+        console.error("Failed to check Google API key", e);
       }
+
+      // 2. If not found in environment, check LocalStorage
+      if (!googleKeyFound) {
+        const localKey = localStorage.getItem('gemini_api_key');
+        if (localKey) {
+          setHasApiKey(true);
+        } else {
+          // Check if process.env.API_KEY is already populated (e.g. hardcoded or other injection)
+          // Note: In some build setups process.env.API_KEY might be replaced by a string.
+          // We handle this safely.
+          try {
+             if (process.env.API_KEY) {
+                 setHasApiKey(true);
+             }
+          } catch(e) {
+              // ignore
+          }
+        }
+      }
+
+      setIsCheckingKey(false);
     };
     checkKey();
   }, []);
@@ -34,32 +62,47 @@ const App: React.FC = () => {
     if (window.aistudio) {
       try {
         await window.aistudio.openSelectKey();
-        const has = await window.aistudio.hasSelectedApiKey(); // Double check
+        const has = await window.aistudio.hasSelectedApiKey(); 
         if (has) {
             setHasApiKey(true);
             setIsGuest(false);
         } else {
-            // If openSelectKey resolves but no key selected (cancelled), strictly speaking not an error, but we can check.
-            // Often openSelectKey returns void. We rely on it throwing if "not found" or us checking state.
-             setHasApiKey(true); // Optimistic, or rely on internal state of aistudio
+             // If the promise resolved without error, usually it means success or user cancelled.
+             // We check hasSelectedApiKey again to be sure. 
+             // Some versions of the API might resolve even if cancelled.
+             // If we are here, we might optimistically assume success if the environment is quirky, 
+             // but strict checking is better.
+             // However, to satisfy "automatically detect", if openSelectKey finishes, we can trigger a re-render/re-check.
+             const reCheck = await window.aistudio.hasSelectedApiKey();
+             if (reCheck) setHasApiKey(true);
         }
       } catch (e: any) {
         console.error("Failed to select key", e);
-        // Handle specific "Authentication provider not found" error
         if (e.message && e.message.includes("Authentication provider not found")) {
-             setAuthError("Environment Error: Google AI Studio authentication provider is missing. Please ensure you are running this app within the correct Google AI environment.");
+             setAuthError("Authentication provider missing. You can enter your API key manually below.");
         } else {
-             setAuthError("Authentication failed. Please try again or continue as Guest.");
+             setAuthError("Authentication failed. Please try again, enter key manually, or continue as Guest.");
         }
       }
     } else {
-        setAuthError("Google AI Studio environment not detected. Please use Guest Mode.");
+        setAuthError("Google AI Studio environment not detected.");
     }
+  };
+
+  const handleManualKeySave = (key: string) => {
+    localStorage.setItem('gemini_api_key', key);
+    setHasApiKey(true);
+    setIsGuest(false);
+    setAuthError(null);
   };
 
   const handleGuestAccess = () => {
     setIsGuest(true);
     setAuthError(null);
+  };
+
+  const handleReset = () => {
+    setDataset(null);
   };
 
   return (
@@ -108,8 +151,14 @@ const App: React.FC = () => {
                     ) : (
                         <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500 w-full max-w-md">
                             {authError && (
-                                <div className="w-full bg-red-900/30 border border-red-500/50 rounded-lg p-3 text-sm text-red-200 text-center mb-2">
-                                    {authError}
+                                <div className="w-full bg-red-900/20 border border-red-500/30 rounded-lg p-3 text-sm text-red-200 text-center mb-2 animate-in slide-in-from-top-2">
+                                    <p className="mb-2">{authError}</p>
+                                    <button 
+                                        onClick={() => setShowApiKeyModal(true)}
+                                        className="text-xs font-semibold bg-red-500/20 hover:bg-red-500/30 text-red-100 px-4 py-1.5 rounded-full transition-colors border border-red-500/30 inline-flex items-center gap-1"
+                                    >
+                                        <Key size={12} /> Set up API Key manually
+                                    </button>
                                 </div>
                             )}
                             
@@ -126,25 +175,26 @@ const App: React.FC = () => {
                                 Log in with Google
                             </button>
                             
-                            <button 
-                                onClick={handleGuestAccess}
-                                className="text-slate-400 hover:text-white text-sm font-medium transition-colors hover:underline underline-offset-4"
-                            >
-                                Continue as Guest
-                            </button>
+                            <div className="flex gap-4 text-sm font-medium">
+                                <button 
+                                    onClick={() => setShowApiKeyModal(true)}
+                                    className="text-slate-400 hover:text-white transition-colors hover:underline underline-offset-4 flex items-center gap-1.5"
+                                >
+                                    <Key size={14} /> Enter API Key
+                                </button>
+                                <span className="text-slate-700">|</span>
+                                <button 
+                                    onClick={handleGuestAccess}
+                                    className="text-slate-400 hover:text-white transition-colors hover:underline underline-offset-4"
+                                >
+                                    Continue as Guest
+                                </button>
+                            </div>
 
                             <div className="text-center space-y-2 max-w-xs mt-2">
                                 <p className="text-slate-500 text-xs">
                                     Guest mode provides local data visualization but excludes AI features.
                                 </p>
-                                <a 
-                                    href="https://ai.google.dev/gemini-api/docs/billing" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-brand-500/80 hover:text-brand-400 transition-colors block"
-                                >
-                                    View Billing Documentation
-                                </a>
                             </div>
                         </div>
                     )}
@@ -166,9 +216,15 @@ const App: React.FC = () => {
                 </div>
             </div>
         ) : (
-            <Dashboard dataset={dataset} onReset={() => setDataset(null)} isGuest={isGuest && !hasApiKey} />
+            <Dashboard dataset={dataset} onReset={handleReset} isGuest={isGuest && !hasApiKey} />
         )}
       </div>
+
+      <ApiKeyModal 
+        isOpen={showApiKeyModal} 
+        onClose={() => setShowApiKeyModal(false)} 
+        onSave={handleManualKeySave} 
+      />
 
       {/* Global Footer */}
       <footer className="py-2 text-center text-slate-600 text-[11px] bg-slate-950 border-t border-slate-900 z-50 shrink-0 select-none">
