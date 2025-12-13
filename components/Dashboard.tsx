@@ -45,6 +45,9 @@ interface DashboardProps {
 
 const COLORS = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#ec4899', '#64748b'];
 
+// Placeholder Logo
+const LOGO_URL = "https://cdn-icons-png.flaticon.com/512/9724/9724484.png";
+
 // Available Models - Generic Naming
 const AI_MODELS = [
     { id: 'gemini-2.5-flash', name: 'AI Model Fast' },
@@ -344,9 +347,9 @@ export default function Dashboard({ dataset, onReset, isGuest }: DashboardProps)
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-1 hover:bg-slate-800 rounded">
             <Menu className="w-5 h-5" />
           </button>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-brand-500/20">
-            M
-          </div>
+          
+          <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" />
+          
           <h1 className="text-xl font-bold tracking-tight hidden sm:block">MetricFlowAI</h1>
           <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-xs border border-slate-700 max-w-[150px] truncate">
              {dataset.name}
