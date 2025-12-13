@@ -7,6 +7,25 @@ const getApiKey = (): string | null => {
   return process.env.API_KEY || localStorage.getItem('gemini_api_key') || null;
 };
 
+// Validate API Key by making a minimal request
+export const validateApiKey = async (apiKey: string): Promise<boolean> => {
+  if (!apiKey) return false;
+  const ai = new GoogleGenAI({ apiKey });
+  try {
+    await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: 'test',
+      config: {
+        maxOutputTokens: 1,
+      }
+    });
+    return true;
+  } catch (error) {
+    console.warn("API Key Validation Failed:", error);
+    return false;
+  }
+};
+
 export const analyzeDataset = async (dataset: Dataset, model: string = 'gemini-2.5-flash'): Promise<string> => {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("API Key is missing. Please log in or set up your API key.");
