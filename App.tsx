@@ -11,6 +11,7 @@ const App: React.FC = () => {
   const [hasApiKey, setHasApiKey] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const [isCheckingKey, setIsCheckingKey] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkKey = async () => {
@@ -29,19 +30,36 @@ const App: React.FC = () => {
   }, []);
 
   const handleLogin = async () => {
+    setAuthError(null);
     if (window.aistudio) {
       try {
         await window.aistudio.openSelectKey();
-        setHasApiKey(true);
-        setIsGuest(false);
-      } catch (e) {
+        const has = await window.aistudio.hasSelectedApiKey(); // Double check
+        if (has) {
+            setHasApiKey(true);
+            setIsGuest(false);
+        } else {
+            // If openSelectKey resolves but no key selected (cancelled), strictly speaking not an error, but we can check.
+            // Often openSelectKey returns void. We rely on it throwing if "not found" or us checking state.
+             setHasApiKey(true); // Optimistic, or rely on internal state of aistudio
+        }
+      } catch (e: any) {
         console.error("Failed to select key", e);
+        // Handle specific "Authentication provider not found" error
+        if (e.message && e.message.includes("Authentication provider not found")) {
+             setAuthError("Environment Error: Google AI Studio authentication provider is missing. Please ensure you are running this app within the correct Google AI environment.");
+        } else {
+             setAuthError("Authentication failed. Please try again or continue as Guest.");
+        }
       }
+    } else {
+        setAuthError("Google AI Studio environment not detected. Please use Guest Mode.");
     }
   };
 
   const handleGuestAccess = () => {
     setIsGuest(true);
+    setAuthError(null);
   };
 
   return (
@@ -88,10 +106,16 @@ const App: React.FC = () => {
                             <FileUpload onDataLoaded={setDataset} />
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+                        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500 w-full max-w-md">
+                            {authError && (
+                                <div className="w-full bg-red-900/30 border border-red-500/50 rounded-lg p-3 text-sm text-red-200 text-center mb-2">
+                                    {authError}
+                                </div>
+                            )}
+                            
                             <button 
                                 onClick={handleLogin}
-                                className="group flex items-center gap-3 px-8 py-4 bg-white text-slate-900 rounded-full font-bold text-lg hover:bg-slate-100 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_35px_rgba(255,255,255,0.3)] transform hover:-translate-y-1 active:translate-y-0"
+                                className="group w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-white text-slate-900 rounded-full font-bold text-lg hover:bg-slate-100 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_35px_rgba(255,255,255,0.3)] transform hover:-translate-y-1 active:translate-y-0"
                             >
                                 <svg className="w-6 h-6 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
                                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
