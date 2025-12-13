@@ -1,0 +1,5 @@
+{
+  "name": "MetricFlowAI",
+  "description": "An intelligent data analysis platform that transforms CSV data into actionable insights using advanced AI. Features automated statistical profiling, interactive visualizations, and natural language data querying in English, Arabic, Tamil, and Sinhala.",
+  "requestFramePermissions": []
+}
