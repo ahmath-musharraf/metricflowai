@@ -52,10 +52,3 @@ export enum AnalysisStatus {
   ERROR = 'ERROR'
 }
 
-declare global {
-  // Define AIStudio interface to be compatible with existing global type
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-}
